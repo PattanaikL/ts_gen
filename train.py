@@ -15,27 +15,33 @@ from optparse import OptionParser
 
 
 parser = OptionParser()
-parser.add_option("-r", "--restore", dest="restore", default=None)
-parser.add_option("-l", "--layers", dest="layers", default=2)
-parser.add_option("-s", "--hidden_size", dest="hidden_size", default=128)
-parser.add_option("-i", "--iterations", dest="iterations", default=3)
-parser.add_option("-g", "--gpu", dest="gpu", default=0)
+parser.add_option("--restore", dest="restore", default=None)
+parser.add_option("--layers", dest="layers", default=2)
+parser.add_option("--hidden_size", dest="hidden_size", default=128)
+parser.add_option("--iterations", dest="iterations", default=3)
+parser.add_option("--epochs", dest="epochs", default=200)
+parser.add_option("--batch_size", dest="batch_size", default=8)
+parser.add_option("--gpu", dest="gpu", default=0)
 
-opts, args = parser.parse_args()
-layers = int(opts.layers)
-hidden_size = int(opts.hidden_size)
-iterations = int(opts.iterations)
-gpu = str(opts.gpu)
+parser.add_option("--r_file", dest="r_file", default=None)
+parser.add_option("--p_file", dest="p_file", default=None)
+parser.add_option("--ts_file", dest="ts_file", default=None)
+
+args, _ = parser.parse_args()
+layers = int(args.layers)
+hidden_size = int(args.hidden_size)
+iterations = int(args.iterations)
+gpu = str(args.gpu)
 
 os.environ["CUDA_VISIBLE_DEVICES"] = gpu
 
-reactantFile = 'data/intra_rxns_reactants.sdf'
-tsFile = 'data/intra_rxns_ts.sdf'
-productFile = 'data/intra_rxns_products.sdf'
+reactantFile = str(args.r_file)
+tsFile = str(args.p_file)
+productFile = str(args.ts_file)
 
 QUEUE = True
-BATCH_SIZE = 8
-EPOCHS = 200
+BATCH_SIZE = int(args.batch_size)
+EPOCHS = int(args.epochs)
 best_val_loss = 9e99
 
 # Load dataset
@@ -56,8 +62,6 @@ max_size = max([x.GetNumAtoms() for x,y,z in data])
 print(max_size)
 
 # Splitting
-#np.random.seed(42)
-#random.seed(42)
 N_data = len(data)
 idx = np.arange(N_data)
 np.random.shuffle(idx)
@@ -75,9 +79,6 @@ data_train = [data[i] for i in idx[N_test + N_valid:]]
 base_folder = time.strftime("log/%y%b%d_%I%M%p/", time.localtime())
 if not os.path.exists(base_folder):
     os.makedirs(base_folder)
-# base_folder = 'log/{}layers_{}hs_{}its/'.format(layers, hidden_size, iterations)
-# if not os.path.exists(base_folder):
-#     os.makedirs(base_folder)
 
 train_ts_file = base_folder + 'train_ts.sdf'
 train_reactant_file = base_folder + 'train_reactants.sdf'
@@ -212,8 +213,8 @@ with tf.Session(config=config) as sess:
 
     # Variable saving
     saver = tf.train.Saver()
-    if opts.restore is not None:
-        saver.restore(sess, opts.restore)
+    if args.restore is not None:
+        saver.restore(sess, args.restore)
     elapsed = time.time() - start
     print(" set up in " + str(elapsed) + " s\n")
 
